@@ -10,9 +10,10 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE) # global options
 options(digits = 2, scipen = 1, pillar.signif = 3)
 
+# Libraries
 library(tidyverse)
 library(broom)
 
@@ -79,11 +80,12 @@ Table
 To insert a code chunk, try `alt + ctrl + I` or `option + cmd + I`.
 
 Let's install the [penguins data set](https://allisonhorst.github.io/palmerpenguins/)
+
 ```{r}
 install.packages("palmerpenguins")
 ```
 
-Now we load the package
+Now we load the package and dataset
 ```{r}
 library(palmerpenguins)
 data(package = 'palmerpenguins')
@@ -103,6 +105,7 @@ head(penguins)
 The dataset contains data of `r nrow(penguins)` penguins, and each entry has phenotypic data such as  bill length (mm), bill depth (mm), flipper length (mm), body mass (g), sex (male/female), and year of entry.
 
 ```{r}
+# Determine the mean value of every parameter from each penguins, grouped by species, island and sex
 penguins %>% 
   na.exclude %>% 
   group_by(species, island, sex) %>% 
@@ -112,7 +115,7 @@ penguins %>%
             body_mass = mean(body_mass_g))
 ```
 
-We can make a nicer table using `kable` from the `knitr` package. Also we can get rid of the message with local options (set `message = FALSE`)
+We can make a nicer table using `kable` from the `knitr` package. Also we can get rid of the message with local options (set `message = FALSE`) or move it to the global options.
 
 ```{r, message=FALSE}
 penguins %>% 
@@ -132,6 +135,7 @@ R Markdown is useful to add those extra steps that might not end up in your fina
 Let's evaluate if the data is normally distributed by looking at histograms
 
 ```{r}
+# Histogram
 penguins %>% 
   pivot_longer(cols = c(bill_length_mm, bill_depth_mm, flipper_length_mm, body_mass_g)) %>% 
   ggplot(aes(x = value)) +
@@ -149,7 +153,11 @@ In our case, we will use body mass as our response variable and we want to see h
 
 ```{r}
 # Model definition
+mod0 = lm(body_mass_g ~ 1, data = penguins) # Null model
 mod1 = lm(body_mass_g ~ species, data = penguins)
+
+# Is our model better than the null model?
+anova(mod0, mod1)
 
 # Model Summary
 summary(mod1)
