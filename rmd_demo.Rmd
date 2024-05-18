@@ -1,0 +1,198 @@
+---
+title: "RMarkdown demo"
+author: "Rudolf Schlechter"
+date: "2024-05-16"
+output:
+  html_document: default
+  pdf_document: default
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(digits = 2, scipen = 1, pillar.signif = 3)
+
+library(tidyverse)
+library(broom)
+
+```
+
+##    First things first
+###   Why do we care about R Markdown?
+
+Scripts can be messy and difficult to follow when not enough information is provided. However, *too much* text in a script can be distracting!
+
+R Markdown is a simple formatting syntax. The main purpose is to connect data analysis with documentation. For that, the most simple way is to combine **markdown** (md) with **R** syntax.
+
+`.Rmd file` -> `dynamic document` -> `reproducible research` 
+
+## Markdown
+
+#     Header 1
+##    Header 2
+###   Header 3
+####  Header 4
+##### Header ...
+
+Plain text.
+
+You can use *italics* and **bold**.
+
+superscript^s^ and subscript~s~.
+
+~~strikethrough~~
+
+- Unordered list
+- Itemised
+  - Item 1
+  - Item 2
+
+1. Ordered list
+
+`verbatim code`
+
+> block quote
+
+equation: $e^{i/pi} + 1 = 0$
+
+Table
+
+| Component | Amount | Unit |
+|:---------:|:------:|:----:|
+| Buffer | 10 | $\mu$L |
+| Primer Fwd | 1.5 | $\mu$L |
+| Primer Fwd | 1.5 | $\mu$L |
+| Water | 6 | $\mu$L |
+| DNA | 1.0 | $\mu$L |
+
+## Workflow
+1. Open new .Rmd file
+2. Embed code
+3. Write text
+4. Set output format (header)
+5. Save and render
+6. Share!
+
+## Let's work with a dataset
+
+To insert a code chunk, try `alt + ctrl + I` or `option + cmd + I`.
+
+Let's install the [penguins data set](https://allisonhorst.github.io/palmerpenguins/)
+```{r}
+install.packages("palmerpenguins")
+```
+
+Now we load the package
+```{r}
+library(palmerpenguins)
+data(package = 'palmerpenguins')
+```
+
+### Data summary
+```{r}
+str(penguins)
+```
+
+Looking at the structure of the data, we have three species of penguins: `r levels(penguins$species)`, found in the islands of `r levels(penguins$island)`.
+
+```{r}
+head(penguins)
+```
+
+The dataset contains data of `r nrow(penguins)` penguins, and each entry has phenotypic data such as  bill length (mm), bill depth (mm), flipper length (mm), body mass (g), sex (male/female), and year of entry.
+
+```{r}
+penguins %>% 
+  na.exclude %>% 
+  group_by(species, island, sex) %>% 
+  summarise(bill_length = mean(bill_length_mm),
+            bill_depth = mean(bill_depth_mm),
+            flipper_length = mean(flipper_length_mm),
+            body_mass = mean(body_mass_g))
+```
+
+We can make a nicer table using `kable` from the `knitr` package. Also we can get rid of the message with local options (set `message = FALSE`)
+
+```{r, message=FALSE}
+penguins %>% 
+  na.exclude %>% 
+  group_by(species, island, sex) %>% 
+  summarise(bill_length = mean(bill_length_mm),
+            bill_depth = mean(bill_depth_mm),
+            flipper_length = mean(flipper_length_mm),
+            body_mass = mean(body_mass_g)) %>% 
+  knitr::kable()
+```
+
+## Exploratory analysis
+
+R Markdown is useful to add those extra steps that might not end up in your final manuscript, such as your exploratory analysis!
+
+Let's evaluate if the data is normally distributed by looking at histograms
+
+```{r}
+penguins %>% 
+  pivot_longer(cols = c(bill_length_mm, bill_depth_mm, flipper_length_mm, body_mass_g)) %>% 
+  ggplot(aes(x = value)) +
+  facet_wrap(~name, scales = "free_x")+
+  geom_histogram()
+```
+
+We can analyse a bit further the body mass of the different species of penguins.
+
+##    Linear model
+
+A linear model is a regression analysis in which a response variable can be described as a function of one or more predictors. In R, we express it as `y ~ x`.
+
+In our case, we will use body mass as our response variable and we want to see how the different species contribute to the variation in weight among penguins.
+
+```{r}
+# Model definition
+mod1 = lm(body_mass_g ~ species, data = penguins)
+
+# Model Summary
+summary(mod1)
+
+# Residuals
+plot(resid(mod1))
+
+# Extract some the data from the model
+df.mod1 <- tidy(mod1) %>% 
+  mutate(species = levels(penguins$species),
+         mean_body_mass = ifelse(term == "(Intercept)", 
+                                 estimate, 
+                                 estimate[species == "Adelie"] + estimate))
+
+```
+
+We can extract information from our model and use inline code. For example, we have now learned that the weight of species `r df.mod1$species[1]` is lower (mean = `r df.mod1$mean_body_mass[1]` g) than that of species `r df.mod1$species[3]` (mean = `r df.mod1$mean_body_mass[3]` g), with a *p*-value = `r df.mod1$p.value[3]` and an adjusted *R*^2^ = `r summary(mod1)$adj.r.squared * 100`%.
+
+Let's plot our results:
+
+```{r}
+penguins %>% 
+  na.exclude %>% 
+  ggplot(aes(x = species, y = body_mass_g))+
+  geom_jitter(width = 0.1)+
+  theme_bw()+
+  labs(x = "Species", y = "Body mass [g]")
+  
+```
+
+We can include the means extracted from the model:
+
+```{r}
+penguins %>% 
+  na.exclude %>% 
+  ggplot(aes(x = species, y = body_mass_g))+
+  geom_jitter(width = 0.1)+
+  # Add a red dot representing the mean of each group
+  geom_point(data = df.mod1, aes(x = species, y = mean_body_mass),
+             color = "red",
+             size = 3)+
+  theme_bw()+
+  labs(x = "Species", y = "Body mass [g]")
+```
+
+
