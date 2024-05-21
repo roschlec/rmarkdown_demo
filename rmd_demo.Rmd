@@ -3,6 +3,7 @@ title: "RMarkdown demo"
 author: "Rudolf Schlechter"
 date: "2024-05-16"
 output:
+  word_document: default
   html_document: default
   pdf_document: default
 editor_options:
@@ -10,7 +11,7 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE) # global options
+knitr::opts_chunk$set(echo = TRUE, message = FALSE) # global options
 options(digits = 2, scipen = 1, pillar.signif = 3)
 
 # Libraries
@@ -59,6 +60,9 @@ equation: $e^{i/pi} + 1 = 0$
 
 Table
 
+[link](https://rmarkdown.rstudio.com)
+
+
 | Component | Amount | Unit |
 |:---------:|:------:|:----:|
 | Buffer | 10 | $\mu$L |
@@ -79,6 +83,12 @@ Table
 
 To insert a code chunk, try `alt + ctrl + I` or `option + cmd + I`.
 
+```{r}
+message <- c(print('Hello world!'))
+```
+
+I want to write `r message`.
+
 Let's install the [penguins data set](https://allisonhorst.github.io/palmerpenguins/)
 
 ```{r}
@@ -96,7 +106,7 @@ data(package = 'palmerpenguins')
 str(penguins)
 ```
 
-Looking at the structure of the data, we have three species of penguins: `r levels(penguins$species)`, found in the islands of `r levels(penguins$island)`.
+Looking at the structure of the data, we have `r length(levels(penguins$species))` species of penguins: `r levels(penguins$species)`, found in the islands of `r levels(penguins$island)`.
 
 ```{r}
 head(penguins)
@@ -104,7 +114,7 @@ head(penguins)
 
 The dataset contains data of `r nrow(penguins)` penguins, and each entry has phenotypic data such as  bill length (mm), bill depth (mm), flipper length (mm), body mass (g), sex (male/female), and year of entry.
 
-```{r}
+```{r, message=FALSE}
 # Determine the mean value of every parameter from each penguins, grouped by species, island and sex
 penguins %>% 
   na.exclude %>% 
@@ -138,7 +148,7 @@ Let's evaluate if the data is normally distributed by looking at histograms
 # Histogram
 penguins %>% 
   pivot_longer(cols = c(bill_length_mm, bill_depth_mm, flipper_length_mm, body_mass_g)) %>% 
-  ggplot(aes(x = value)) +
+  ggplot(aes(x = value, fill = species)) +
   facet_wrap(~name, scales = "free_x")+
   geom_histogram()
 ```
@@ -172,9 +182,10 @@ df.mod1 <- tidy(mod1) %>%
                                  estimate, 
                                  estimate[species == "Adelie"] + estimate))
 
+species.adelie.model <- df.mod1$species[1]
 ```
 
-We can extract information from our model and use inline code. For example, we have now learned that the weight of species `r df.mod1$species[1]` is lower (mean = `r df.mod1$mean_body_mass[1]` g) than that of species `r df.mod1$species[3]` (mean = `r df.mod1$mean_body_mass[3]` g), with a *p*-value = `r df.mod1$p.value[3]` and an adjusted *R*^2^ = `r summary(mod1)$adj.r.squared * 100`%.
+We can extract information from our model and use inline code. For example, we have now learned that the weight of species `r species.adelie.model` is lower (mean = `r df.mod1$mean_body_mass[1]` g) than that of species `r df.mod1$species[3]` (mean = `r df.mod1$mean_body_mass[3]` g), with a *p*-value = `r df.mod1$p.value[3]` and an adjusted *R*^2^ = `r summary(mod1)$adj.r.squared * 100`%.
 
 Let's plot our results:
 
@@ -202,5 +213,4 @@ penguins %>%
   theme_bw()+
   labs(x = "Species", y = "Body mass [g]")
 ```
-
 
